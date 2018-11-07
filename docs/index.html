@@ -166,13 +166,21 @@
                 dict[path[lastKeyIndex]] = val;
             }
 
+            function nested_get(dict, path) {
+                var resp = dict
+                path.forEach(function(key, index) {
+                    resp = resp[key]
+                });
+                return resp
+            }
+
             var data = {}
             
             $(document).ready(function() {
                 var is_blob = (item) => { return item.type == 'blob' };
                 var is_json = (item) => { return item.path.split('.').pop() == 'json' };
                 var is_dict = (item) => { return !!item && typeof item === 'object' && item !== null && !(item instanceof Array) && !(item instanceof Date); };
-                var is_subcat = (item) => { return is_dict(data[item]) && is_dict(data[item][Object.keys(data[item])[0]]) };
+                var has_subcat = (item) => { return is_dict(data[item]) && is_dict(data[item][Object.keys(data[item])[0]]) };
                 var capitalize = (item) => { return item.charAt(0).toUpperCase() + item.slice(1) };
 
                 $.ajax('https://api.github.com/repos/vrachieru/pixel-art/git/trees/master?recursive=1')
@@ -196,35 +204,35 @@
 
                         // build navigation
                         Object.keys(data).forEach(function(key) {
-                            var item = this.$OuterDiv = $('<li></li>')
+                            var item = $('<li>')
                                 .append(
-                                    $('<a></a>')
+                                    $('<a>')
                                         .attr({ 'href' : 'javascript:void(0);' })
                                         .text(capitalize(key))
                                 );
 
-                            if (is_subcat(key)) {
+                            if (has_subcat(key)) {
                                 item.addClass('sub-menu');
 
-                                var subitem = this.$OuterDiv = $('<ul></ul>')
+                                var subitems = $('<ul>')
                                     .css('display', 'none');
 
                                 Object.keys(data[key]).forEach(function(key2) {
-                                    subitem.append(
-                                        this.$OuterDiv = $('<li></li>')
+                                    subitems.append($('<li>')
+                                        .attr({ 'data-path' : `${key}/${key2}` })
                                         .append(
-                                            $('<a></a>')
+                                            $('<a>')
                                                 .attr({ 'href' : 'javascript:void(0);' })
                                                 .text(capitalize(key2))
                                         )
                                     );
                                 });
-                                item.append(subitem);
+                                item.append(subitems);
                             } else {
                                 item.attr({ 'data-path' : key })
                             }
 
-                            $('#menu ul').append(item);
+                            $('#menu > ul').append(item);
                         });
                     });
             });
@@ -246,7 +254,7 @@
                 $('#gallery').empty();
 
                 // current category items
-                var items = data[$(this).data('path')];
+                var items = nested_get(data, $(this).data('path').split('/'));
 
                 // populate gallery
                 Object.keys(items).forEach(function(item) {
@@ -270,7 +278,7 @@
 
                             // fill led matrix
                             Array(rows * cols).fill().map(() => { 
-                                $(`#${item_definition.name} .led-matrix ul`).append('<li></li>');
+                                $(`#${item_definition.name} .led-matrix ul`).append('<li>');
                             })
 
                             led_size = 5;

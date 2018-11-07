@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pixel-art catalog</title>
+        <style>
+            body, html {
+                background: #eee;
+                height: 100%;
+                margin: 0;
+            }
+
+            ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .container {
+                display: flex;
+                height: 100%;
+            }
+
+            .container > .left {
+                max-width: 250px;
+                width: 25%;
+            }
+
+            .container > .right {
+                color: #d50a1f;
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
+                position: relative;
+            }
+
+            #menu {
+                -moz-transition: all 0.3s ease-in-out;
+                -ms-transition: all 0.3s ease-in-out;
+                -o-transition: all 0.3s ease-in-out;
+                -webkit-transition: all 0.3s ease-in-out;
+                background: rgb(56,56,56);
+                height: 100%;
+                transition: all 0.3s ease-in-out;
+            }
+
+            #menu ul,
+            #menu ul ul {
+                margin: -2px 0 0;
+                padding: 0;
+            }
+
+            #menu ul li {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                list-style-type: none;
+            }
+
+            #menu ul li.active > a {
+                color: #fff;
+            }
+
+            #menu ul li.active ul {
+                display: block;
+            }
+
+            #menu ul li a {
+                -moz-transition: all 200ms ease-in;
+                -ms-transition: all 200ms ease-in;
+                -o-transition: all 200ms ease-in;
+                -webkit-transition: all 200ms ease-in;
+                color: #aeb2b7;
+                display: block;
+                font-size: 12px;
+                outline: 0;
+                padding: 15px 0 15px 25px;
+                text-decoration: none;
+                transition: all 200ms ease-in;
+            }
+
+            #menu ul li a:hover {
+                color: #fff;
+            }
+
+            #menu ul li a span {
+                display: inline-block;
+            }
+
+            #menu ul li a i {
+                width: 20px;
+            }
+
+            #menu ul li a i .fa-angle-left,
+            #menu ul li a i .fa-angle-right {
+                padding-top: 3px;
+            }
+
+            #menu ul ul {
+                display: none;
+            }
+
+            #menu ul ul li {
+                background: #444;
+                border-bottom: none;
+                margin-bottom: 0;
+                margin-left: 0;
+                margin-right: 0;
+            }
+
+            #menu ul ul li a {
+                color: #ccc;
+                font-size: 12px;
+                padding-bottom: 13px;
+                padding-top: 13px;
+            }
+
+            .led-matrix {
+                background: -moz-linear-gradient(top, rgba(56,56,56,1) 0%, rgba(33,33,33,1) 100%); /* FF3.6+ */
+                background: -ms-linear-gradient(top, rgba(56,56,56,1) 0%, rgba(33,33,33,1) 100%); /* IE10+ */
+                background: -o-linear-gradient(top, rgba(56,56,56,1) 0%, rgba(33,33,33,1) 100%); /* Opera 11.10+ */
+                background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, rgba(56,56,56,1)), color-stop(100%, rgba(33,33,33,1))); /* Chrome,Safari4+ */
+                background: -webkit-linear-gradient(top, rgba(56,56,56,1) 0%, rgba(33,33,33,1) 100%); /* Chrome10+,Safari5.1+ */
+                background: linear-gradient(to bottom, rgba(56,56,56,1) 0%, rgba(33,33,33,1) 100%); /* W3C */
+                background: rgb(56,56,56); /* Old browsers */
+                border-radius: 4px;
+                border: 1px solid #333;
+                box-shadow: 0 1px 0 #fff, inset 0 1px #555;
+                display: block;
+                filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#383838', endColorstr='#212121', GradientType=0); /* IE6-9 */
+                float: left;
+                height: 112px;
+                margin: 7px;
+                overflow: hidden;
+                padding-bottom: 7px;
+                padding-left: 7px;
+                width: 112px;
+            }
+
+            .led-matrix ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .led-matrix ul li {
+                background: #444;
+                border-radius: 360px;
+                float: left;
+                height: 10px;
+                margin-right: 7px;
+                margin-top: 7px;
+                width: 10px;
+            }
+        </style>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+        <script type="text/javascript">
+            function nested_put(dict, path, val) {
+                lastKeyIndex = path.length-1;
+                for (var i = 0; i < lastKeyIndex; ++i) {
+                    key = path[i];
+                    if (!(key in dict)) {
+                        dict[key] = {}
+                    }
+                    dict = dict[key];
+                }
+                dict[path[lastKeyIndex]] = val;
+            }
+
+            var data = {}
+            
+            $(document).ready(function() {
+                var is_blob = (item) => { return item.type == 'blob' };
+                var is_json = (item) => { return item.path.split('.').pop() == 'json' };
+                var is_dict = (item) => { return !!item && typeof item === 'object' && item !== null && !(item instanceof Array) && !(item instanceof Date); };
+                var is_subcat = (item) => { return is_dict(data[item]) && is_dict(data[item][Object.keys(data[item])[0]]) };
+                var capitalize = (item) => { return item.charAt(0).toUpperCase() + item.slice(1) };
+
+                $.ajax('https://api.github.com/repos/vrachieru/pixel-art/git/trees/master?recursive=1')
+                    .done(function(repository) {
+
+                        // build file tree
+                        repository.tree.forEach(function(item, index) {
+                            if (is_blob(item) && is_json(item)) {
+                                path = item.path
+                                    .replace('pixelart/', '')
+                                    .replace('.json', '')
+                                    .split('/');
+
+                                nested_put(data, path, item.url);
+                            }
+                        });
+
+                        // test sub-category
+                        // nested_put(data, ['category', 'subcategory_1', 'file_1'], '');
+                        // nested_put(data, ['category', 'subcategory_2', 'file_2'], '');
+
+                        // build navigation
+                        Object.keys(data).forEach(function(key) {
+                            var item = this.$OuterDiv = $('<li></li>')
+                                .append(
+                                    $('<a></a>')
+                                        .attr({ 'href' : 'javascript:void(0);' })
+                                        .text(capitalize(key))
+                                );
+
+                            if (is_subcat(key)) {
+                                item.addClass('sub-menu');
+
+                                var subitem = this.$OuterDiv = $('<ul></ul>')
+                                    .css('display', 'none');
+
+                                Object.keys(data[key]).forEach(function(key2) {
+                                    subitem.append(
+                                        this.$OuterDiv = $('<li></li>')
+                                        .append(
+                                            $('<a></a>')
+                                                .attr({ 'href' : 'javascript:void(0);' })
+                                                .text(capitalize(key2))
+                                        )
+                                    );
+                                });
+                                item.append(subitem);
+                            } else {
+                                item.attr({ 'data-path' : key })
+                            }
+
+                            $('#menu ul').append(item);
+                        });
+                    });
+            });
+
+            // sub-menu toggle
+            $(document).on('click', '#menu .sub-menu > a', function(e) {
+                $('#menu ul ul').slideUp() // close down previous sub-menu
+                $(this).next().is(':visible') || $(this).next().slideDown() // open up current sub-menu
+                e.stopPropagation()
+            });
+
+            
+            $(document).on('click', '#menu li', function(){
+                // set active category
+                $('#menu li').removeClass('active');
+                $(this).addClass('active')
+
+                // clear gallery
+                $('#gallery').empty();
+
+                // current category items
+                var items = data[$(this).data('path')];
+
+                // populate gallery
+                Object.keys(items).forEach(function(item) {
+                    $.ajax(items[item])
+                        .done(function(item_definition) {
+                            item_definition = JSON.parse(atob(item_definition.content));
+
+                            // append led matrix for item
+                            $('#gallery')
+                                .append(`
+                                    <li id="${item_definition.name}">
+                                        <div class="led-matrix">
+                                            <ul></ul>
+                                        </div>
+                                    </li>
+                                `);
+
+                            size = item_definition.size.split('x');
+                            rows = size[0];
+                            cols = size[1];
+
+                            // fill led matrix
+                            Array(rows * cols).fill().map(() => { 
+                                $(`#${item_definition.name} .led-matrix ul`).append('<li></li>');
+                            })
+
+                            led_size = 5;
+
+                            // resize leds
+                            $(`#${item_definition.name} .led-matrix ul li`).height(`${led_size}px`);
+                            $(`#${item_definition.name} .led-matrix ul li`).width(`${led_size}px`);
+
+                            // resize led matrix
+                            $(`#${item_definition.name} .led-matrix`)
+                                .css('height', rows * $(`#${item_definition.name} .led-matrix ul li`).outerHeight(true) + 'px')
+                                .css('width', cols * $(`#${item_definition.name} .led-matrix ul li`).outerWidth(true) + 'px');
+
+                            // sanitize input
+                            DISPLAY = item_definition.frames.rgb[0]
+                                .reduce(function (accumulator, row) {
+                                    return accumulator.concat(row);
+                                }, [])
+                                .map(function(item) {
+                                    return JSON.stringify(item) == '[0,0,0]' ? [68, 68, 68] : item; 
+                                });
+
+                            // display input
+                            DISPLAY.forEach(function(pixel, index) {
+                                $(`#${item_definition.name} .led-matrix ul li`).eq(index).css('background', `rgb(${pixel})`);
+                                $(`#${item_definition.name} .led-matrix ul li`).eq(index).css('box-shadow', `0 0 7px rgb(${pixel})`);
+                            })
+                        });
+                    
+                });
+            });
+        </script>
+
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="left">
+                <div id="menu">
+                    <ul></ul>
+                </div>
+            </div>
+
+            <div class="right">
+                <ul id="gallery"></ul>
+            </div>
+        </div>
+    </body>
+</html>

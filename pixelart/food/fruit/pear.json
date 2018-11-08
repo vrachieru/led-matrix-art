@@ -1,6 +1,6 @@
 {
     "name": "pear",
-    "category": "food",
+    "category": "food/fruit",
     "size": "8x8",
     "is_bw": false,
     "is_rgb": true,
